@@ -39,7 +39,12 @@ func (t *shardWriter) Write(key []byte, values tsm1.Values) {
 	}
 
 	if err := t.w.Write(key, values); err != nil {
-		t.err = err
+		if err == tsm1.ErrMaxBlocksExceeded {
+			t.closeTSM()
+			t.nextTSM()
+		} else {
+			t.err = err
+		}
 	}
 }
 
