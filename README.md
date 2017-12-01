@@ -10,7 +10,7 @@ is started, the generated database will be immediately available for querying.
 This tool is intended to generate data fast and in a deterministic state.
 
 performance
-===========
+-----------
 
 Performance is expected to be considerably higher, given it bypasses the entire write path. 
 
@@ -77,5 +77,9 @@ Total time: 4.0 seconds
 bin/ingen -data-path ~/.influxdb/data -meta-path ~/.influxdb/meta  -p=250     8.06s user 0.12s system 201% cpu 4.069 total
 ```
 
+TODOs
+-----
+
+* [ ] support TSI
 
 [inch]: https://github.com/influxdata/inch
