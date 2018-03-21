@@ -236,7 +236,7 @@ func (s *Generator) setup() error {
 	os.RemoveAll(dbpath)
 
 	var rp meta.RetentionPolicySpec
-	rp.ShardGroupDuration = 24 * time.Hour
+	rp.ShardGroupDuration = s.ShardDuration
 	rp.Name = "autogen"
 	s.db, err = s.meta.CreateDatabaseWithRetentionPolicy(s.Database, &rp)
 	if err != nil {
@@ -261,7 +261,6 @@ func (s *Generator) writeShard(n int) error {
 	counts := make([]int, len(s.Tags))
 	start := sgi.StartTime
 	delta := s.ShardDuration / time.Duration(s.PointsPerShardN())
-	bc := int(math.Ceil(float64(s.PointsPerSeriesPerShard) / float64(tsdb.DefaultMaxPointsPerBlock)))
 
 	ww := newShardWriter(sgi, s.shardPath)
 	defer ww.Close()
@@ -279,15 +278,16 @@ func (s *Generator) writeShard(n int) error {
 		keyb := []byte(key)
 
 		// write write write
-		pc := s.PointsPerSeriesPerShard
-		for b := 0; b < bc; b++ {
-			p := 0
-			for ; p < pc; p++ {
-				vals[p] = tsm1.NewIntegerValue(start.UnixNano(), 1)
+		tp := s.PointsPerSeriesPerShard
+		for tp > 0 {
+			pc := min(tp, tsdb.DefaultMaxPointsPerBlock)
+			data := vals[:pc]
+			for p := range data {
+				data[p] = tsm1.NewIntegerValue(start.UnixNano(), 1)
 				start = start.Add(delta)
 			}
-			pc -= tsdb.DefaultMaxPointsPerBlock
-			ww.Write(keyb, vals[:p])
+			ww.Write(keyb, data)
+			tp -= pc
 		}
 
 		if err := ww.Err(); err != nil {
@@ -305,6 +305,13 @@ func (s *Generator) writeShard(n int) error {
 	}
 
 	return nil
+}
+
+func min(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // nextTSMWriter returns the next TSMWriter for the Converter.
