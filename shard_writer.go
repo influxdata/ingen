@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/influxdata/influxdb/services/meta"
 	"github.com/influxdata/influxdb/tsdb/engine/tsm1"
 )
 
@@ -16,14 +15,14 @@ const (
 
 type shardWriter struct {
 	w        tsm1.TSMWriter
-	sgi      *meta.ShardGroupInfo
+	id       uint64
 	path     string
 	gen, seq int
 	err      error
 }
 
-func newShardWriter(sgi *meta.ShardGroupInfo, path string) *shardWriter {
-	t := &shardWriter{sgi: sgi, path: path, gen: 1, seq: 1}
+func newShardWriter(id uint64, path string) *shardWriter {
+	t := &shardWriter{id: id, path: path, gen: 1, seq: 1}
 	t.nextTSM()
 	return t
 }
@@ -57,7 +56,7 @@ func (t *shardWriter) Close() {
 func (t *shardWriter) Err() error { return t.err }
 
 func (t *shardWriter) nextTSM() {
-	fileName := filepath.Join(t.path, strconv.Itoa(int(t.sgi.ID)), fmt.Sprintf("%09d-%09d.%s", t.gen, t.seq, tsm1.TSMFileExtension))
+	fileName := filepath.Join(t.path, strconv.Itoa(int(t.id)), fmt.Sprintf("%09d-%09d.%s", t.gen, t.seq, tsm1.TSMFileExtension))
 	t.seq++
 
 	fd, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, 0666)

@@ -26,5 +26,5 @@
   name = "github.com/influxdata/influxdb"
 
 [[constraint]]
-  name = "go.uber.org/zap"
-  revision = "35aad584952c3e7020db7b839f6b102de6271f89"
+  name = "github.com/BurntSushi/toml"
+  branch = "master"

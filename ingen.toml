@@ -1,0 +1,21 @@
+[db]
+
+# data-path = "./foo"
+shard-duration = "1h"
+shard-count = 5
+#start-time = 2018-03-23T00:00:00Z
+
+[generator]
+
+[[generator.tags]]
+name = "host"
+seq = "seq.host"
+
+[[generator.tags]]
+cardinality = 30
+
+[seq]
+    [seq.host]
+    type = "byte_sequence"
+    format = "host_%d"
+    end = 5

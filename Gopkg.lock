@@ -2,55 +2,143 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "a368813c5e648fee92e5f6c30e3944ff9d5e8895"
+
+[[projects]]
+  name = "github.com/RoaringBitmap/roaring"
+  packages = ["."]
+  revision = "d6540aab65a17321470b1661bfc52da1823871e9"
+  version = "v0.4.3"
+
+[[projects]]
   name = "github.com/cespare/xxhash"
   packages = ["."]
   revision = "5c37fe3735342a2e0d01c87a907579987c8936cc"
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/dgryski/go-bits"
-  packages = ["."]
-  revision = "2ad8d707cc05b1815ce6ff2543bb5e8d8f9298ef"
-
-[[projects]]
-  branch = "master"
   name = "github.com/dgryski/go-bitstream"
   packages = ["."]
   revision = "7d46cd22db7004f0cceb6f7975824b560cf0e486"
 
 [[projects]]
-  name = "github.com/gogo/protobuf"
-  packages = ["gogoproto","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  branch = "master"
+  name = "github.com/glycerine/go-unsnap-stream"
+  packages = ["."]
+  revision = "62a9a9eb44fd8932157b1a8ace2149eff5971af6"
 
 [[projects]]
-  branch = "master"
+  name = "github.com/gogo/protobuf"
+  packages = [
+    "gogoproto",
+    "proto",
+    "protoc-gen-gogo/descriptor",
+    "sortkeys",
+    "types"
+  ]
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/golang/snappy"
   packages = ["."]
-  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+  revision = "d9eb7a3d35ec988b8585d4a0068e462c27d28380"
 
 [[projects]]
   branch = "master"
   name = "github.com/influxdata/influxdb"
-  packages = [".","models","monitor/diagnostics","pkg/bits","pkg/bloom","pkg/bytesutil","pkg/escape","pkg/estimator","pkg/estimator/hll","pkg/file","pkg/limiter","pkg/metrics","pkg/mmap","pkg/pool","pkg/rhh","pkg/tracing","pkg/tracing/fields","pkg/tracing/labels","pkg/tracing/wire","query","query/internal","query/neldermead","services/meta","services/meta/internal","toml","tsdb","tsdb/engine/tsm1","tsdb/index","tsdb/index/inmem","tsdb/index/tsi1","tsdb/internal"]
-  revision = "fd11e200c8b2e4d23c31945e330b2768b83d46f5"
+  packages = [
+    ".",
+    "logger",
+    "models",
+    "monitor/diagnostics",
+    "pkg/binaryutil",
+    "pkg/bloom",
+    "pkg/bytesutil",
+    "pkg/escape",
+    "pkg/estimator",
+    "pkg/estimator/hll",
+    "pkg/file",
+    "pkg/limiter",
+    "pkg/metrics",
+    "pkg/mmap",
+    "pkg/pool",
+    "pkg/rhh",
+    "pkg/slices",
+    "pkg/snowflake",
+    "pkg/tar",
+    "pkg/tracing",
+    "pkg/tracing/fields",
+    "pkg/tracing/labels",
+    "pkg/tracing/wire",
+    "query",
+    "query/internal",
+    "query/neldermead",
+    "services/meta",
+    "services/meta/internal",
+    "toml",
+    "tsdb",
+    "tsdb/engine/tsm1",
+    "tsdb/index",
+    "tsdb/index/inmem",
+    "tsdb/index/tsi1",
+    "tsdb/internal"
+  ]
+  revision = "aa61359cc74f220f4e5680de3a6d699691c0b793"
 
 [[projects]]
-  branch = "master"
   name = "github.com/influxdata/influxql"
-  packages = [".","internal"]
-  revision = "c108c5fb9a432242754d18371795aa8099e73fe7"
+  packages = [
+    ".",
+    "internal"
+  ]
+  revision = "53bc9c15f65bea9e4b9f6cc5d9c5327d4077bdc5"
 
 [[projects]]
-  branch = "master"
+  name = "github.com/jsternberg/zap-logfmt"
+  packages = ["."]
+  revision = "ac4bd917e18a4548ce6e0e765b29a4e7f397b0b6"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/jwilder/encoding"
   packages = ["simple8b"]
-  revision = "b4e1701a28efcc637d9afcca7d38e495fe909a09"
+  revision = "27894731927e49b0a9023f00312be26733744815"
 
 [[projects]]
   branch = "master"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mschoch/smat"
+  packages = ["."]
+  revision = "90eadee771aeab36e8bf796039b8c261bebebe4f"
+
+[[projects]]
+  name = "github.com/philhofer/fwd"
+  packages = ["."]
+  revision = "bb6d471dc95d4fe11e432687f8b70ff496cf3136"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/tinylib/msgp"
+  packages = ["msgp"]
+  revision = "b2b6a672cf1e5b90748f79b8b81fc8c5cf0571a1"
+  version = "1.0.2"
+
+[[projects]]
+  name = "github.com/willf/bitset"
+  packages = ["."]
+  revision = "d860f346b89450988a379d7d705e83c58d1ea227"
+  version = "v1.1.3"
+
+[[projects]]
   name = "github.com/xlab/treeprint"
   packages = ["."]
   revision = "06dfc6fa17cdde904617990a0c2d89e3e332dbb3"
@@ -69,24 +157,49 @@
 
 [[projects]]
   name = "go.uber.org/zap"
-  packages = [".","buffer","internal/bufferpool","internal/color","internal/exit","zapcore"]
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore"
+  ]
   revision = "35aad584952c3e7020db7b839f6b102de6271f89"
+  version = "v1.7.1"
 
 [[projects]]
-  branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["bcrypt","blowfish"]
-  revision = "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
+  packages = [
+    "bcrypt",
+    "blowfish"
+  ]
+  revision = "9477e0b78b9ac3d0b03822fd95422e2fe07627cd"
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "e0c57d8f86c17f0724497efcb3bc617e82834821"
+
+[[projects]]
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  revision = "fd80eb99c8f653c847d294a001bdf2a3a6f768f5"
+
+[[projects]]
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "8b4580aae2a0dd0c231a45d3ccb8434ff533b840"
+  revision = "062cd7e4e68206d8bab9b18396626e855c992658"
+
+[[projects]]
+  name = "golang.org/x/time"
+  packages = ["rate"]
+  revision = "6dc17368e09b0e8634d71cac8168d853e869a0c7"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "32ae4a6ccbcf1ec5a719c4aded7c4445c6dd9ecd0bce3589ac1c5c543eaa0976"
+  inputs-digest = "4c0a283f9922fddab2d0d2a588f8389510141f20b4a11272182bc54ff673eb3c"
   solver-name = "gps-cdcl"
   solver-version = 1
