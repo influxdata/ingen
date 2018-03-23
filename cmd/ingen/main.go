@@ -44,7 +44,7 @@ var cmd struct {
 	DataPath                string
 	MetaPath                string
 	StartTime               string
-	Tenant                  string
+	OrgID                   string
 	Database                string
 	RP                      string
 	ShardCount              int
@@ -64,8 +64,8 @@ func parseFlags(args ...string) (db *ingen.Database, gens []ingen.SeriesGenerato
 	fs.StringVar(&cmd.DataPath, "data-path", "", "path to InfluxDB data")
 	fs.StringVar(&cmd.MetaPath, "meta-path", "", "path to InfluxDB meta")
 	fs.StringVar(&cmd.StartTime, "start-time", "", "Start time (default now - (shards * shard-duration))")
-	fs.StringVar(&cmd.Tenant, "tenant", "", "Optional: Create multi-tenant data")
-	fs.StringVar(&cmd.Database, "db", "db", "Database to create")
+	fs.StringVar(&cmd.OrgID, "org-id", "", "Optional: Specify org-id to create multi-tenant data")
+	fs.StringVar(&cmd.Database, "db", "db", "Database (single tenant) or bucket id (multi-tenant) to create")
 	fs.StringVar(&cmd.RP, "rp", "rp", "Default retention policy")
 	fs.IntVar(&cmd.ShardCount, "shards", 1, "Number of shards to create")
 	fs.DurationVar(&cmd.ShardDuration, "shard-duration", 24*time.Hour, "Shard duration (default 24h)")
@@ -112,7 +112,7 @@ func parseFlags(args ...string) (db *ingen.Database, gens []ingen.SeriesGenerato
 		tagsN *= v
 	}
 
-	if cmd.Tenant != "" {
+	if cmd.OrgID != "" {
 		cfg.Database = "db"
 		cfg.RP = "rp"
 	}
@@ -126,8 +126,8 @@ func parseFlags(args ...string) (db *ingen.Database, gens []ingen.SeriesGenerato
 	fmt.Fprintf(os.Stdout, "Total series: %d\n", tagsN)
 	fmt.Fprintf(os.Stdout, "Total points: %d\n", tagsN*cfg.ShardCount*cmd.PointsPerSeriesPerShard)
 	fmt.Fprintf(os.Stdout, "Shard Count: %d\n", cfg.ShardCount)
-	if cmd.Tenant != "" {
-		fmt.Fprintf(os.Stdout, "Tenant+Bucket: %s+%s\n", cmd.Tenant, cmd.Database)
+	if cmd.OrgID != "" {
+		fmt.Fprintf(os.Stdout, "Tenant+Bucket: %s+%s\n", cmd.OrgID, cmd.Database)
 	}
 	fmt.Fprintf(os.Stdout, "Database: %s/%s (Shard duration: %s)\n", cfg.Database, cfg.RP, cfg.ShardDuration)
 	fmt.Fprintf(os.Stdout, "Start time: %s\n", cfg.StartTime)
@@ -152,8 +152,8 @@ func parseFlags(args ...string) (db *ingen.Database, gens []ingen.SeriesGenerato
 			tv   []gen.Sequence
 		)
 
-		if cmd.Tenant != "" {
-			name = []byte(cmd.Tenant)
+		if cmd.OrgID != "" {
+			name = []byte(cmd.OrgID)
 			name = append(name, 0, 0)
 			name = append(name, cmd.Database...)
 
