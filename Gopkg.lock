@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/BurntSushi/toml"
-  packages = ["."]
-  revision = "a368813c5e648fee92e5f6c30e3944ff9d5e8895"
-
-[[projects]]
   name = "github.com/RoaringBitmap/roaring"
   packages = ["."]
   revision = "d6540aab65a17321470b1661bfc52da1823871e9"
@@ -200,6 +194,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4c0a283f9922fddab2d0d2a588f8389510141f20b4a11272182bc54ff673eb3c"
+  inputs-digest = "e59c70228a9a25c08c1e665eb374ea90779a9aeb6486f7e07903885a08cc532a"
   solver-name = "gps-cdcl"
   solver-version = 1

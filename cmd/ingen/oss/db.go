@@ -1,12 +1,14 @@
-package ingen
+package oss
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/influxdata/influxdb/services/meta"
+	"github.com/influxdata/ingen"
 )
 
 type DBConfig struct {
@@ -109,4 +111,86 @@ func (db *Database) createShardGroups(client *meta.Client) error {
 	db.Info = client.Database(db.database)
 
 	return nil
+}
+
+type Visitor interface {
+	Visit(node Node) Visitor
+}
+
+type Node interface{ node() }
+
+func (*DBConfig) node() {}
+
+func WalkConfig(v Visitor, node Node) {
+	if v = v.Visit(node); v == nil {
+		return
+	}
+
+	switch n := node.(type) {
+	case *DBConfig:
+
+	default:
+		panic(fmt.Sprintf("WalkConfig: unexpected node type %T", n))
+	}
+}
+
+type configValidator struct {
+	errs []error
+}
+
+func (v *configValidator) Visit(node Node) Visitor {
+	switch n := node.(type) {
+	case *DBConfig:
+		if n.StartTime.Add(n.TimeSpan()).After(time.Now()) {
+			v.errs = append(v.errs, fmt.Errorf("start time must be ≤ %s", time.Now().Truncate(n.ShardDuration.Duration).UTC().Add(-n.TimeSpan())))
+		}
+	}
+
+	return v
+}
+func (v *configValidator) Err() error {
+	return ingen.NewErrorList(v.errs)
+}
+
+type configDefaults struct {
+	tagN int
+}
+
+func (v *configDefaults) Visit(node Node) Visitor {
+	switch n := node.(type) {
+	case *DBConfig:
+		if n.DataPath == "" {
+			n.DataPath = "${HOME}/.influxdb/data"
+		}
+		if n.MetaPath == "" {
+			n.MetaPath = "${HOME}/.influxdb/meta"
+		}
+		if n.Database == "" {
+			n.Database = "db"
+		}
+		if n.RP == "" {
+			n.RP = "autogen"
+		}
+		if n.ShardDuration.Duration == 0 {
+			n.ShardDuration.Duration = 24 * time.Hour
+		}
+		if n.ShardCount == 0 {
+			n.ShardCount = 1
+		}
+		if n.StartTime.IsZero() {
+			n.StartTime = time.Now().Truncate(n.ShardDuration.Duration).Add(-n.TimeSpan())
+		}
+	}
+
+	return v
+}
+
+type duration struct {
+	time.Duration
+}
+
+func (d *duration) UnmarshalText(text []byte) error {
+	var err error
+	d.Duration, err = time.ParseDuration(string(text))
+	return err
 }
