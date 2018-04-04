@@ -125,7 +125,11 @@ func (g *Generator) Run(ctx context.Context, database, shardPath string, groups 
 		errs = append(errs, e)
 	}
 
-	return errs
+	if len(errs) > 0 {
+		return errs
+	}
+
+	return nil
 }
 
 // seriesBatchSize specifies the number of series keys passed to the index.
