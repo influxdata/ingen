@@ -1,8 +1,7 @@
-package oss
+package genshards
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -11,17 +10,17 @@ import (
 	"time"
 
 	"github.com/influxdata/ingen"
-	"github.com/influxdata/ingen/cmd/ingen/gen"
+	"github.com/influxdata/ingen/pkg/gen"
+	"github.com/spf13/cobra"
 )
 
-type Command struct {
+type command struct {
 	PrintOnly               bool
 	BuildTSI                bool
 	Concurrency             int
 	DataPath                string
 	MetaPath                string
 	StartTime               string
-	OrgID                   string
 	Database                string
 	RP                      string
 	ShardCount              int
@@ -30,10 +29,35 @@ type Command struct {
 	PointsPerSeriesPerShard int
 }
 
-func New() *Command { return new(Command) }
+func New() *cobra.Command {
+	var o command
+	cmd := &cobra.Command{
+		Use:   "gen-shards",
+		Short: "Generate one or more fully-compacted shards",
+		RunE:  o.Run,
+	}
 
-func (cmd *Command) Run(args []string) error {
-	db, gens, err := cmd.parseFlags(args)
+	fs := cmd.Flags()
+	fs.BoolVar(&o.PrintOnly, "print", false, "Print data spec only")
+	fs.BoolVar(&o.BuildTSI, "tsi", false, "Build TSI index")
+	fs.IntVar(&o.Concurrency, "c", 1, "Concurrency")
+	fs.StringVar(&o.DataPath, "data-path", "", "path to InfluxDB data")
+	fs.StringVar(&o.MetaPath, "meta-path", "", "path to InfluxDB meta")
+	fs.StringVar(&o.StartTime, "start-time", "", "Start time")
+	fs.StringVar(&o.Database, "db", "db", "Name of database to create")
+	fs.StringVar(&o.RP, "rp", "rp", "Name of retention policy")
+	fs.IntVar(&o.ShardCount, "shards", 1, "Number of shards to create")
+	fs.DurationVar(&o.ShardDuration, "shard-duration", 24*time.Hour, "Shard duration (default 24h)")
+	fs.StringVar(&o.Tags, "t", "10,10,10", "Tag cardinality")
+	fs.IntVar(&o.PointsPerSeriesPerShard, "p", 100, "Points per series per shard")
+
+
+
+	return cmd
+}
+
+func (cmd *command) Run(_ *cobra.Command, args []string) error {
+	db, gens, err := cmd.processOptions()
 	if err != nil {
 		return err
 	}
@@ -56,28 +80,7 @@ func (cmd *Command) Run(args []string) error {
 	return g.Run(context.Background(), db.database, db.ShardPath, groups, gens)
 }
 
-func (cmd *Command) parseFlags(args []string) (db *Database, gens []ingen.SeriesGenerator, err error) {
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.SetOutput(os.Stderr)
-
-	fs.BoolVar(&cmd.PrintOnly, "print", false, "Print data spec only")
-	fs.BoolVar(&cmd.BuildTSI, "tsi", false, "Build TSI index")
-	fs.IntVar(&cmd.Concurrency, "c", 1, "Concurrency")
-	fs.StringVar(&cmd.DataPath, "data-path", "", "path to InfluxDB data")
-	fs.StringVar(&cmd.MetaPath, "meta-path", "", "path to InfluxDB meta")
-	fs.StringVar(&cmd.StartTime, "start-time", "", "Start time (default now - (shards * shard-duration))")
-	fs.StringVar(&cmd.OrgID, "org-id", "", "Optional: Specify org-id to create multi-tenant data")
-	fs.StringVar(&cmd.Database, "db", "db", "Database (single tenant) or bucket id (multi-tenant) to create")
-	fs.StringVar(&cmd.RP, "rp", "rp", "Default retention policy")
-	fs.IntVar(&cmd.ShardCount, "shards", 1, "Number of shards to create")
-	fs.DurationVar(&cmd.ShardDuration, "shard-duration", 24*time.Hour, "Shard duration (default 24h)")
-	fs.StringVar(&cmd.Tags, "t", "10,10,10", "Tag cardinality")
-	fs.IntVar(&cmd.PointsPerSeriesPerShard, "p", 100, "Points per series per shard")
-
-	if err := fs.Parse(args); err != nil {
-		return nil, nil, err
-	}
-
+func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator, err error) {
 	cfg := new(DBConfig)
 
 	cfg.Database = cmd.Database
@@ -114,11 +117,6 @@ func (cmd *Command) parseFlags(args []string) (db *Database, gens []ingen.Series
 		tagsN *= v
 	}
 
-	if cmd.OrgID != "" {
-		cfg.Database = "db"
-		cfg.RP = "rp"
-	}
-
 	fmt.Fprintf(os.Stdout, "Data Path: %s\n", cfg.DataPath)
 	fmt.Fprintf(os.Stdout, "Meta Path: %s\n", cfg.MetaPath)
 	fmt.Fprintf(os.Stdout, "Concurrency: %d\n", cmd.Concurrency)
@@ -128,9 +126,6 @@ func (cmd *Command) parseFlags(args []string) (db *Database, gens []ingen.Series
 	fmt.Fprintf(os.Stdout, "Total series: %d\n", tagsN)
 	fmt.Fprintf(os.Stdout, "Total points: %d\n", tagsN*cfg.ShardCount*cmd.PointsPerSeriesPerShard)
 	fmt.Fprintf(os.Stdout, "Shard Count: %d\n", cfg.ShardCount)
-	if cmd.OrgID != "" {
-		fmt.Fprintf(os.Stdout, "Tenant+Bucket: %s+%s\n", cmd.OrgID, cmd.Database)
-	}
 	fmt.Fprintf(os.Stdout, "Database: %s/%s (Shard duration: %s)\n", cfg.Database, cfg.RP, cfg.ShardDuration)
 	fmt.Fprintf(os.Stdout, "TSI: %t\n", cmd.BuildTSI)
 	fmt.Fprintf(os.Stdout, "Start time: %s\n", cfg.StartTime)
@@ -155,25 +150,11 @@ func (cmd *Command) parseFlags(args []string) (db *Database, gens []ingen.Series
 			tv   []gen.Sequence
 		)
 
-		if cmd.OrgID != "" {
-			name = []byte(cmd.OrgID)
-			name = append(name, 0, 0)
-			name = append(name, cmd.Database...)
-
-			tv = make([]gen.Sequence, len(tags)+1)
-			tv[0] = gen.ConstantStringSequence("m0")
-			setTagVals(tags, tv[1:])
-
-			keys = make([]string, len(tv))
-			keys[0] = "_m"
-			setTagKeys("tag", keys[1:])
-		} else {
-			name = []byte("m0")
-			tv = make([]gen.Sequence, len(tags))
-			setTagVals(tags, tv)
-			keys = make([]string, len(tags))
-			setTagKeys("tag", keys)
-		}
+		name = []byte("m0")
+		tv = make([]gen.Sequence, len(tags))
+		setTagVals(tags, tv)
+		keys = make([]string, len(tags))
+		setTagKeys("tag", keys)
 
 		sgi := &groups[i]
 		vg := gen.NewIntegerConstantValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 1)
