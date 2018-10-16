@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/influxdata/influxdb/tsdb"
@@ -52,3 +53,95 @@ func (g *IntegerConstantValuesSequence) Next() bool {
 }
 
 func (g *IntegerConstantValuesSequence) Values() tsm1.Values { return g.vals }
+
+type FloatConstantValuesSequence struct {
+	buf   tsm1.Values
+	vals  tsm1.Values
+	n     int
+	t     int64
+	state struct {
+		n int
+		t int64
+		d int64
+		v float64
+	}
+}
+
+func NewFloatConstantValuesSequence(n int, start time.Time, delta time.Duration, v float64) *FloatConstantValuesSequence {
+	g := &FloatConstantValuesSequence{buf: make(tsm1.Values, tsdb.DefaultMaxPointsPerBlock)}
+	g.state.n = n
+	g.state.t = start.UnixNano()
+	g.state.d = int64(delta)
+	g.state.v = v
+	g.Reset()
+	return g
+}
+
+func (g *FloatConstantValuesSequence) Reset() {
+	g.n = g.state.n
+	g.t = g.state.t
+}
+
+func (g *FloatConstantValuesSequence) Next() bool {
+	if g.n == 0 {
+		return false
+	}
+
+	c := min(g.n, tsdb.DefaultMaxPointsPerBlock)
+	g.n -= c
+	g.vals = g.buf[:c]
+
+	for i := range g.vals {
+		g.vals[i] = tsm1.NewFloatValue(g.t, g.state.v)
+		g.t += g.state.d
+	}
+	return true
+}
+
+func (g *FloatConstantValuesSequence) Values() tsm1.Values { return g.vals }
+
+type FloatRandomValuesSequence struct {
+	buf   tsm1.Values
+	vals  tsm1.Values
+	n     int
+	t     int64
+	state struct {
+		n     int
+		t     int64
+		d     int64
+		scale float64
+	}
+}
+
+func NewFloatRandomValuesSequence(n int, start time.Time, delta time.Duration, scale float64) *FloatRandomValuesSequence {
+	g := &FloatRandomValuesSequence{buf: make(tsm1.Values, tsdb.DefaultMaxPointsPerBlock)}
+	g.state.n = n
+	g.state.t = start.UnixNano()
+	g.state.d = int64(delta)
+	g.state.scale = scale
+	g.Reset()
+	return g
+}
+
+func (g *FloatRandomValuesSequence) Reset() {
+	g.n = g.state.n
+	g.t = g.state.t
+}
+
+func (g *FloatRandomValuesSequence) Next() bool {
+	if g.n == 0 {
+		return false
+	}
+
+	c := min(g.n, tsdb.DefaultMaxPointsPerBlock)
+	g.n -= c
+	g.vals = g.buf[:c]
+
+	for i := range g.vals {
+		g.vals[i] = tsm1.NewFloatValue(g.t, rand.Float64() * g.state.scale)
+		g.t += g.state.d
+	}
+	return true
+}
+
+func (g *FloatRandomValuesSequence) Values() tsm1.Values { return g.vals }

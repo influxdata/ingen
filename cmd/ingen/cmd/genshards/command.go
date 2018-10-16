@@ -7,11 +7,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/influxdata/ingen"
 	"github.com/influxdata/ingen/pkg/gen"
 	"github.com/spf13/cobra"
+	"golang.org/x/text/message"
 )
 
 type command struct {
@@ -50,8 +52,6 @@ func New() *cobra.Command {
 	fs.DurationVar(&o.ShardDuration, "shard-duration", 24*time.Hour, "Shard duration (default 24h)")
 	fs.StringVar(&o.Tags, "t", "10,10,10", "Tag cardinality")
 	fs.IntVar(&o.PointsPerSeriesPerShard, "p", 100, "Points per series per shard")
-
-
 
 	return cmd
 }
@@ -117,20 +117,22 @@ func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator
 		tagsN *= v
 	}
 
-	fmt.Fprintf(os.Stdout, "Data Path: %s\n", cfg.DataPath)
-	fmt.Fprintf(os.Stdout, "Meta Path: %s\n", cfg.MetaPath)
-	fmt.Fprintf(os.Stdout, "Concurrency: %d\n", cmd.Concurrency)
-	fmt.Fprintf(os.Stdout, "Tag cardinalities: %+v\n", tags)
-	fmt.Fprintf(os.Stdout, "Points per series per shard: %d\n", cmd.PointsPerSeriesPerShard)
-	fmt.Fprintf(os.Stdout, "Total points per shard: %d\n", tagsN*cmd.PointsPerSeriesPerShard)
-	fmt.Fprintf(os.Stdout, "Total series: %d\n", tagsN)
-	fmt.Fprintf(os.Stdout, "Total points: %d\n", tagsN*cfg.ShardCount*cmd.PointsPerSeriesPerShard)
-	fmt.Fprintf(os.Stdout, "Shard Count: %d\n", cfg.ShardCount)
-	fmt.Fprintf(os.Stdout, "Database: %s/%s (Shard duration: %s)\n", cfg.Database, cfg.RP, cfg.ShardDuration)
-	fmt.Fprintf(os.Stdout, "TSI: %t\n", cmd.BuildTSI)
-	fmt.Fprintf(os.Stdout, "Start time: %s\n", cfg.StartTime)
-	fmt.Fprintf(os.Stdout, "End time: %s\n", cfg.EndTime())
-	fmt.Fprintln(os.Stdout)
+	mp := message.NewPrinter(message.MatchLanguage("en"))
+	tw := tabwriter.NewWriter(os.Stdout, 25, 4, 2, ' ', 0)
+	mp.Fprintf(tw, "Data Path\t%s\n", cfg.DataPath)
+	mp.Fprintf(tw, "Meta Path\t%s\n", cfg.MetaPath)
+	mp.Fprintf(tw, "Concurrency\t%d\n", cmd.Concurrency)
+	mp.Fprintf(tw, "Tag cardinalities\t%s\n", fmt.Sprintf("%+v", tags))
+	mp.Fprintf(tw, "Points per series per shard\t%d\n", cmd.PointsPerSeriesPerShard)
+	mp.Fprintf(tw, "Total points per shard\t%d\n", tagsN*cmd.PointsPerSeriesPerShard)
+	mp.Fprintf(tw, "Total series\t%d\n", tagsN)
+	mp.Fprintf(tw, "Total points\t%d\n", tagsN*cfg.ShardCount*cmd.PointsPerSeriesPerShard)
+	mp.Fprintf(tw, "Shard Count\t%d\n", cfg.ShardCount)
+	mp.Fprintf(tw, "Database\t%s/%s (Shard duration: %s)\n", cfg.Database, cfg.RP, cfg.ShardDuration)
+	mp.Fprintf(tw, "TSI\t%t\n", cmd.BuildTSI)
+	mp.Fprintf(tw, "Start time\t%s\n", cfg.StartTime)
+	mp.Fprintf(tw, "End time\t%s\n", cfg.EndTime())
+	tw.Flush()
 
 	if cmd.PrintOnly {
 		return nil, nil, nil
@@ -157,7 +159,8 @@ func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator
 		setTagKeys("tag", keys)
 
 		sgi := &groups[i]
-		vg := gen.NewIntegerConstantValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 1)
+		//vg := gen.NewIntegerConstantValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 1)
+		vg := gen.NewFloatRandomValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 10)
 
 		gens[i] = gen.NewSeriesGenerator(name, "v0", vg, gen.NewTagsValuesSequenceKeysValues(keys, tv))
 	}
