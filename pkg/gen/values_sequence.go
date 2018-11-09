@@ -136,12 +136,56 @@ func (g *FloatRandomValuesSequence) Next() bool {
 	c := min(g.n, tsdb.DefaultMaxPointsPerBlock)
 	g.n -= c
 	g.vals = g.buf[:c]
-
 	for i := range g.vals {
-		g.vals[i] = tsm1.NewFloatValue(g.t, rand.Float64() * g.state.scale)
+		g.vals[i] = tsm1.NewFloatValue(g.t, rand.Float64()*g.state.scale)
 		g.t += g.state.d
 	}
 	return true
 }
 
 func (g *FloatRandomValuesSequence) Values() tsm1.Values { return g.vals }
+
+type IntegerRandomValuesSequence struct {
+	buf   tsm1.Values
+	vals  tsm1.Values
+	n     int
+	t     int64
+	state struct {
+		n   int
+		t   int64
+		d   int64
+		max int64
+	}
+}
+
+func NewIntegerRandomValuesSequence(n int, start time.Time, delta time.Duration, max int64) *IntegerRandomValuesSequence {
+	g := &IntegerRandomValuesSequence{buf: make(tsm1.Values, tsdb.DefaultMaxPointsPerBlock)}
+	g.state.n = n
+	g.state.t = start.UnixNano()
+	g.state.d = int64(delta)
+	g.state.max = max
+	g.Reset()
+	return g
+}
+
+func (g *IntegerRandomValuesSequence) Reset() {
+	g.n = g.state.n
+	g.t = g.state.t
+}
+
+func (g *IntegerRandomValuesSequence) Next() bool {
+	if g.n == 0 {
+		return false
+	}
+
+	c := min(g.n, tsdb.DefaultMaxPointsPerBlock)
+	g.n -= c
+	g.vals = g.buf[:c]
+	for i := range g.vals {
+		g.vals[i] = tsm1.NewIntegerValue(g.t, rand.Int63n(g.state.max))
+		g.t += g.state.d
+	}
+	return true
+}
+
+func (g *IntegerRandomValuesSequence) Values() tsm1.Values { return g.vals }

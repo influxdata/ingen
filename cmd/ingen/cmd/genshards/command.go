@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -29,6 +30,7 @@ type command struct {
 	ShardDuration           time.Duration
 	Tags                    string
 	PointsPerSeriesPerShard int
+	Fields                  int
 }
 
 func New() *cobra.Command {
@@ -52,6 +54,7 @@ func New() *cobra.Command {
 	fs.DurationVar(&o.ShardDuration, "shard-duration", 24*time.Hour, "Shard duration (default 24h)")
 	fs.StringVar(&o.Tags, "t", "10,10,10", "Tag cardinality")
 	fs.IntVar(&o.PointsPerSeriesPerShard, "p", 100, "Points per series per shard")
+	fs.IntVar(&o.Fields, "f", 1, "Fields per point")
 
 	return cmd
 }
@@ -80,7 +83,7 @@ func (cmd *command) Run(_ *cobra.Command, args []string) error {
 	return g.Run(context.Background(), db.database, db.ShardPath, groups, gens)
 }
 
-func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator, err error) {
+func (cmd *command) processOptions() (db *Database, gens [][]ingen.SeriesGenerator, err error) {
 	cfg := new(DBConfig)
 
 	cfg.Database = cmd.Database
@@ -124,6 +127,7 @@ func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator
 	mp.Fprintf(tw, "Concurrency\t%d\n", cmd.Concurrency)
 	mp.Fprintf(tw, "Tag cardinalities\t%s\n", fmt.Sprintf("%+v", tags))
 	mp.Fprintf(tw, "Points per series per shard\t%d\n", cmd.PointsPerSeriesPerShard)
+	mp.Fprintf(tw, "Fields per point\t%d\n", cmd.Fields)
 	mp.Fprintf(tw, "Total points per shard\t%d\n", tagsN*cmd.PointsPerSeriesPerShard)
 	mp.Fprintf(tw, "Total series\t%d\n", tagsN)
 	mp.Fprintf(tw, "Total points\t%d\n", tagsN*cfg.ShardCount*cmd.PointsPerSeriesPerShard)
@@ -133,6 +137,8 @@ func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator
 	mp.Fprintf(tw, "Start time\t%s\n", cfg.StartTime)
 	mp.Fprintf(tw, "End time\t%s\n", cfg.EndTime())
 	tw.Flush()
+
+	rand.Seed(123)
 
 	if cmd.PrintOnly {
 		return nil, nil, nil
@@ -144,25 +150,23 @@ func (cmd *command) processOptions() (db *Database, gens []ingen.SeriesGenerator
 	}
 
 	groups := db.Info.RetentionPolicy(db.Info.DefaultRetentionPolicy).ShardGroups
-	gens = make([]ingen.SeriesGenerator, len(groups))
+	gens = make([][]ingen.SeriesGenerator, len(groups))
 	for i := range gens {
-		var (
-			name []byte
-			keys []string
-			tv   []gen.Sequence
-		)
 
-		name = []byte("m0")
-		tv = make([]gen.Sequence, len(tags))
-		setTagVals(tags, tv)
-		keys = make([]string, len(tags))
-		setTagKeys("tag", keys)
+		name := []byte("m0")
 
 		sgi := &groups[i]
-		//vg := gen.NewIntegerConstantValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 1)
-		vg := gen.NewFloatRandomValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 10)
+		gens[i] = make([]ingen.SeriesGenerator, cmd.Fields)
+		for f := 0; f < cmd.Fields; f++ {
+			tv := make([]gen.Sequence, len(tags))
+			setTagVals(tags, tv)
+			keys := make([]string, len(tags))
+			setTagKeys("tag", keys)
+			//vg := gen.NewIntegerRandomValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), 2)
+			vg := gen.NewFloatRandomValuesSequence(cmd.PointsPerSeriesPerShard, sgi.StartTime, cfg.ShardDuration.Duration/time.Duration(cmd.PointsPerSeriesPerShard), float64(10*(f+1)))
 
-		gens[i] = gen.NewSeriesGenerator(name, "v0", vg, gen.NewTagsValuesSequenceKeysValues(keys, tv))
+			gens[i][f] = gen.NewSeriesGenerator(name, fmt.Sprintf("v%d", f), vg, gen.NewTagsValuesSequenceKeysValues(keys, tv))
+		}
 	}
 
 	return db, gens, nil
